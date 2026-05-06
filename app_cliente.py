@@ -3,8 +3,8 @@ from supabase import create_client
 import datetime
 
 # Conexão com o Supabase EXTERNO (Portal)
-URL_PORTAL = "SUA_URL_SUPABASE_PORTAL"
-KEY_PORTAL = "SUA_KEY_SUPABASE_PORTAL"
+URL_PORTAL = st.secrets["supabase_portal"]["url"]
+KEY_PORTAL = st.secrets["supabase_portal"]["key"]
 supabase_portal = create_client(URL_PORTAL, KEY_PORTAL)
 
 st.set_page_config(page_title="Agendamento | Montanha Suplementos", page_icon="📅")
