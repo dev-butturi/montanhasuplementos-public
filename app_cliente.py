@@ -35,6 +35,8 @@ with st.form("form_requisicao"):
     "Consultoria Esportiva"
     ]
     
+    servico_selecionado = st.selectbox("Serviço Desejado *", servicos_disponiveis)
+    
     nutri = st.selectbox("Profissional (Opcional)", ["Qualquer Profissional", "Dr. João Silva", "Dra. Maria Nutri"])
     
     submit = st.form_submit_button("Solicitar Agendamento", type="primary", use_container_width=True)
