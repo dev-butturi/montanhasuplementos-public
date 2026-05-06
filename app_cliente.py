@@ -14,9 +14,10 @@ st.write("Escolha a unidade e o horário de sua preferência.")
 
 # Lista de lojas (Para o cliente saber onde está marcando)
 lojas = {
-    "Loja Matriz - Centro": 1,
-    "Loja Shopping": 2,
-    "Loja Sul": 3
+    "São João del-Rei": 1,
+    "BH - Cidade Nova": 2,
+    "BH - Jaraguá": 3,
+    "Contagem": 4
 }
 
 with st.form("form_requisicao"):
@@ -27,6 +28,12 @@ with st.form("form_requisicao"):
     col1, col2 = st.columns(2)
     data = col1.date_input("Data desejada", min_value=datetime.date.today())
     hora = col2.time_input("Horário")
+    
+    servicos_disponiveis = [
+    "Nutricionista", 
+    "Avaliação Física + Bioimpedância", 
+    "Consultoria Esportiva"
+    ]
     
     nutri = st.selectbox("Profissional (Opcional)", ["Qualquer Profissional", "Dr. João Silva", "Dra. Maria Nutri"])
     
