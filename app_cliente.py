@@ -50,6 +50,7 @@ with st.form("form_requisicao"):
                 "data_pretendida": str(data),
                 "hora_pretendida": str(hora),
                 "nutri_pretendido": nutri,
+                "servico": servico_selecionado, # Novo campo
                 "status": "pendente"
             }
             supabase_portal.table("requisicoes_online").insert(nova_req).execute()
