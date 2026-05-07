@@ -2,6 +2,14 @@ import streamlit as st
 from supabase import create_client
 import datetime
 
+# Defs
+def carregar_profissionais():
+    res = supabase_portal.table('profissionais_disponiveis').select('nome, profissao').execute()
+    if res.data:
+        # Criamos uma lista formatada: "Dr. João (Nutricionista)"
+        return [f"{p['nome']} ({p['profissao']})" for p in res.data]
+    return ["Selecione um profissional"]
+
 # Conexão com o Supabase EXTERNO (Portal)
 URL_PORTAL = st.secrets["supabase_portal"]["url"]
 KEY_PORTAL = st.secrets["supabase_portal"]["key"]
@@ -37,7 +45,8 @@ with st.form("form_requisicao"):
     
     servico_selecionado = st.selectbox("Serviço Desejado *", servicos_disponiveis)
     
-    nutri = st.selectbox("Profissional (Opcional)", ["Qualquer Profissional", "Dr. João Silva", "Dra. Maria Nutri"])
+    lista_profissionais = carregar_profissionais()
+    nutri = st.selectbox("Profissional", ["Qualquer Profissional"] + lista_profissionais)
     
     submit = st.form_submit_button("Solicitar Agendamento", type="primary", use_container_width=True)
     
