@@ -46,7 +46,7 @@ with st.form("form_requisicao"):
     servico_selecionado = st.selectbox("Serviço Desejado *", servicos_disponiveis)
     
     lista_profissionais = carregar_profissionais()
-    nutri = st.selectbox("Profissional", ["Qualquer Profissional"] + lista_profissionais)
+    profissional = st.selectbox("Profissional", ["Qualquer Profissional"] + lista_profissionais)
     
     submit = st.form_submit_button("Solicitar Agendamento", type="primary", use_container_width=True)
     
@@ -60,7 +60,7 @@ with st.form("form_requisicao"):
                 "id_loja_pretendida": lojas[unidade],
                 "data_pretendida": str(data),
                 "hora_pretendida": str(hora),
-                "nutri_pretendido": nutri,
+                "profissional_pretendido": profissional,
                 "servico": servico_selecionado
             }
             supabase_portal.table("requisicoes_online").insert(nova_req).execute()
