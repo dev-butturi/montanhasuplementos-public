@@ -52,6 +52,31 @@ def extrair_horarios_validos(agenda_json, dia_semana, unidade_sigla):
     
     return sorted(list(set(horarios)))
 
+def filtrar_horarios_ocupados(horarios_livres, data, profissional, unidade):
+    """
+    Remove da lista de horários aqueles que já constam como ocupados 
+    na tabela 'agendamentos_confirmados' do Portal.
+    """
+    try:
+        # Busca apenas os horários para aquele dia, profissional e unidade
+        resp = supabase_portal.table('agendamentos_confirmados')\
+            .select('horario')\
+            .eq('data_reserva', str(data))\
+            .eq('profissional', profissional)\
+            .eq('unidade', unidade)\
+            .execute()
+        
+        if resp.data:
+            # Extraímos os horários ocupados (HH:MM)
+            ocupados = [ag['horario'][:5] for ag in resp.data]
+            
+            # Filtramos: só mantemos o que NÃO está na lista de ocupados
+            return [h for h in horarios_livres if h not in ocupados]
+    except Exception as e:
+        print(f"Erro ao filtrar ocupados: {e}")
+        
+    return horarios_livres
+
 # --- 3. INTERFACE DO USUÁRIO ---
 
 st.title("📅 Reserva de Avaliação Esportiva")
@@ -99,19 +124,44 @@ for p in todos_profs:
             })
 
 # PASSO 2: SELEÇÃO DE PROFISSIONAL (REATIVO - FORA DO FORM)
+# --- PASSO 2: SELEÇÃO DE PROFISSIONAL (REATIVO) ---
 st.divider()
 st.markdown("### 2. Especialista e Horário")
+
 if profs_validos:
-    dict_escolha = {p['label']: p['horarios'] for p in profs_validos} # CORRIGIDO AQUI
+    # Criamos um mapeamento do rótulo para os dados brutos do profissional
+    # Isso facilita recuperar o 'nome' puro sem as especialidades entre parênteses
+    mapa_profs = {p['label']: p for p in profs_validos}
     
     col_p, col_h = st.columns(2)
-    nome_escolhido = col_p.selectbox("Selecione o Especialista", list(dict_escolha.keys()))
     
-    horas_disponiveis = dict_escolha[nome_escolhido]
-    hora_final = col_h.selectbox("Horários Disponíveis", horas_disponiveis)
+    label_escolhido = col_p.selectbox("Selecione o Especialista", list(mapa_profs.keys()))
+    
+    # Recuperamos o objeto do profissional selecionado
+    prof_selecionado = mapa_profs[label_escolhido]
+    
+    # 1. Pegamos a lista bruta vinda das regras (JSON)
+    horas_da_regra = prof_selecionado['horarios']
+    
+    # 2. AQUI ENTRA A MÁGICA: Filtramos os horários que já estão no banco
+    with st.spinner("Verificando agenda..."):
+        horas_disponiveis = filtrar_horarios_ocupados(
+            horarios_livres=horas_da_regra,
+            data=data_alvo,
+            profissional=prof_selecionado['nome'], # Nome puro: "João Silva"
+            unidade=sigla_alvo
+        )
+    
+    # 3. Exibimos o selectbox apenas com o que sobrou
+    if horas_disponiveis:
+        hora_final = col_h.selectbox("Horários Disponíveis", horas_disponiveis)
+    else:
+        st.error("⚠️ Este profissional já está com a agenda lotada para este dia.")
+        hora_final = None
+        
 else:
     st.error("Nenhum profissional disponível para os critérios selecionados.")
-    nome_escolhido = None
+    label_escolhido = None
     hora_final = None
 
 st.divider()
@@ -132,10 +182,10 @@ with st.form("form_final_contato", border=False):
             payload = {
                 "nome_cliente": nome_cli,
                 "whatsapp": zap_cli,
-                "unidade": sigla_alvo,
-                "data": str(data_alvo),
-                "hora": hora_final,
-                "profissional": nome_escolhido,
+                "unidade_pretendida": sigla_alvo,
+                "data_pretendida": str(data_alvo),
+                "hora_pretendida": hora_final,
+                "profissional_pretendido": prof_selecionado['nome'],
                 "servico": servico_alvo,
                 "status": "pendente"
             }
