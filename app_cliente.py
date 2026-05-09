@@ -82,29 +82,15 @@ def buscar_profissionais_portal():
 
 def extrair_horarios_validos(agenda_json, dia_semana, unidade_sigla):
     horarios = []
-    # Se a agenda for None ou vazia, já retorna vazio na hora
-    if not agenda_json:
-        return horarios
-        
     regras = agenda_json.get('regras', [])
-    
     for regra in regras:
-        dias = regra.get('dias', [])
-        unidades = regra.get('unidades', [])
-        
-        if dia_semana in dias and unidade_sigla in unidades:
+        if dia_semana in regra.get('dias', []) and unidade_sigla in regra.get('unidades', []):
             try:
-                # Usa .get() no horário para evitar erro de chave inexistente
-                horario_regra = regra.get('horario', {})
-                h_inicio = int(horario_regra.get('inicio', '00:00').split(':')[0])
-                h_fim = int(horario_regra.get('fim', '00:00').split(':')[0])
-                
+                h_inicio = int(regra['horario']['inicio'].split(':')[0])
+                h_fim = int(regra['horario']['fim'].split(':')[0])
                 for h in range(h_inicio, h_fim):
-                    if 6 <= h <= 22:
-                        horarios.append(f"{h:02d}:00")
-            except Exception:
-                continue
-                
+                    if 6 <= h <= 22: horarios.append(f"{h:02d}:00")
+            except Exception: continue
     return sorted(list(set(horarios)))
 
 def filtrar_horarios_ocupados(horarios_livres, data, profissional, unidade):
@@ -188,28 +174,16 @@ with tab_agendamento:
     profs_validos = []
 
     for p in todos_profs:
-        profissoes = p.get('profissao') or {}
-        agenda = p.get('disponibilidade') or {}
+        profissoes = p.get('profissao', {})
+        agenda = p.get('disponibilidade', {})
         
-        # REGRA DE OURO: Se não tem regras de agenda, ignora e vai para o próximo!
-        regras = agenda.get('regras', [])
-        if not regras:
-            continue
-        
-        # Verifica se o profissional faz o serviço escolhido
         pode_atender = False
-        if servico_alvo == "Avaliação Física + Bioimpedância": 
-            pode_atender = True
-        elif servico_alvo == "Nutricionista" and profissoes.get("Nutricionista"): 
-            pode_atender = True
-        elif servico_alvo == "Consultoria Esportiva" and profissoes.get("Personal Trainer"): 
-            pode_atender = True
+        if servico_alvo == "Avaliação Física + Bioimpedância": pode_atender = True
+        elif servico_alvo == "Nutricionista" and profissoes.get("Nutricionista"): pode_atender = True
+        elif servico_alvo == "Consultoria Esportiva" and profissoes.get("Personal Trainer"): pode_atender = True
         
         if pode_atender:
-            # Busca os horários livres apenas para a unidade e dia da semana exatos
             horarios_deste_prof = extrair_horarios_validos(agenda, dia_semana_idx, sigla_alvo)
-            
-            # Só adiciona na lista da tela se tiver pelo menos 1 horário livre!
             if horarios_deste_prof:
                 profs_validos.append({
                     "id": p['id'],
