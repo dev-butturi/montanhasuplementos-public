@@ -175,7 +175,7 @@ with tab_agendamento:
 
     for p in todos_profs:
         profissoes = p.get('profissao', {})
-        agenda = p.get('disponibilidade', {})
+        agenda = p.get('disponibilidade', {}) or {}
         
         pode_atender = False
         if servico_alvo == "Avaliação Física + Bioimpedância": pode_atender = True
