@@ -224,7 +224,7 @@ with tab_agendamento:
             horas_disponiveis = filtrar_horarios_ocupados(
                 horarios_livres=prof_selecionado['horarios'],
                 data=data_alvo,
-                professional=prof_selecionado['nome'],
+                profissional=prof_selecionado['nome'],
                 unidade=sigla_alvo
             )
         
