@@ -1,4 +1,5 @@
 import streamlit as st
+import json
 from supabase import create_client
 import datetime
 
@@ -153,42 +154,60 @@ with tab_inicio:
     st.link_button("🛒 Compre Suplementos On-Line", dados_loja_padrao["site_link"], use_container_width=True)
 
 # --- ABA 2: AGENDAMENTO ---
+# --- ABA 2: AGENDAMENTO (Versão Corrigida e Higienizada) ---
 with tab_agendamento:
     st.write("## Agendamento de Especialistas")
     st.markdown("### 1. Local e Serviço")
     c1, c2, c3 = st.columns(3)
 
-    # O Selectbox já vem pré-selecionado de acordo com a URL!
+    # Configuração de Unidade e Serviço
     index_padrao = list(LOJAS_DB.keys()).index(nome_loja_padrao)
     unidade_nome_selecionada = c1.selectbox("Escolha a Unidade", list(LOJAS_DB.keys()), index=index_padrao)
-    
-    # Extrai a sigla da unidade selecionada no selectbox
     sigla_alvo = LOJAS_DB[unidade_nome_selecionada]["sigla"]
 
     servico_alvo = c2.selectbox("Serviço Desejado", ["Avaliação Física + Bioimpedância", "Nutricionista", "Consultoria Esportiva"])
     data_alvo = c3.date_input("Data da Visita", min_value=datetime.date.today())
+    
+    # Ajuste do dia da semana para o formato do banco (0=Dom, 1=Seg...)
     dia_semana_idx = data_alvo.weekday() + 1
     if dia_semana_idx == 7: dia_semana_idx = 0 
 
+    # Busca e Processamento Seguro
     todos_profs = buscar_profissionais_portal()
     profs_validos = []
 
     for p in todos_profs:
+        # --- HIGIENIZAÇÃO DOS DADOS (Evita o erro AttributeError) ---
         profissoes = p.get('profissao', {})
-        agenda = p.get('disponibilidade', {})
+        if isinstance(profissoes, str):
+            try: profissoes = json.loads(profissoes)
+            except: profissoes = {}
         
+        agenda = p.get('disponibilidade', {})
+        if isinstance(agenda, str):
+            try: agenda = json.loads(agenda)
+            except: agenda = {"regras": []}
+
+        # Filtro de Serviço
         pode_atender = False
-        if servico_alvo == "Avaliação Física + Bioimpedância": pode_atender = True
-        elif servico_alvo == "Nutricionista" and profissoes.get("Nutricionista"): pode_atender = True
-        elif servico_alvo == "Consultoria Esportiva" and profissoes.get("Personal Trainer"): pode_atender = True
+        if servico_alvo == "Avaliação Física + Bioimpedância": 
+            pode_atender = True
+        elif servico_alvo == "Nutricionista" and profissoes.get("Nutricionista"): 
+            pode_atender = True
+        elif servico_alvo == "Consultoria Esportiva" and profissoes.get("Personal Trainer"): 
+            pode_atender = True
         
         if pode_atender:
             horarios_deste_prof = extrair_horarios_validos(agenda, dia_semana_idx, sigla_alvo)
             if horarios_deste_prof:
+                # Criar o label listando as especialidades ativas (v is True)
+                lista_especialidades = [k for k, v in profissoes.items() if v is True]
+                txt_espec = f" ({', '.join(lista_especialidades)})" if lista_especialidades else ""
+                
                 profs_validos.append({
                     "id": p['id'],
                     "nome": p['nome'],
-                    "label": f"{p['nome']} ({', '.join([k for k, v in profissoes.items() if v])})",
+                    "label": f"{p['nome']}{txt_espec}",
                     "horarios": horarios_deste_prof
                 })
 
@@ -200,39 +219,39 @@ with tab_agendamento:
         col_p, col_h = st.columns(2)
         label_escolhido = col_p.selectbox("Selecione o Especialista", list(mapa_profs.keys()))
         prof_selecionado = mapa_profs[label_escolhido]
-        horas_da_regra = prof_selecionado['horarios']
         
-        with st.spinner("Verificando agenda..."):
+        with st.spinner("Verificando horários livres..."):
             horas_disponiveis = filtrar_horarios_ocupados(
-                horarios_livres=horas_da_regra,
+                horarios_livres=prof_selecionado['horarios'],
                 data=data_alvo,
-                profissional=prof_selecionado['nome'],
+                professional=prof_selecionado['nome'],
                 unidade=sigla_alvo
             )
         
         if horas_disponiveis:
             hora_final = col_h.selectbox("Horários Disponíveis", horas_disponiveis)
         else:
-            st.error("⚠️ Este profissional já está com a agenda lotada para este dia.")
+            st.error("⚠️ Agenda lotada para este dia. Tente outra data ou especialista.")
             hora_final = None
     else:
-        st.error("Nenhum profissional disponível para os critérios selecionados.")
+        st.warning("Nenhum especialista disponível para esta data ou unidade.")
         label_escolhido = None
         hora_final = None
 
     st.divider()
+    
+    # 3. FORMULÁRIO DE ENVIO
     with st.form("form_final_contato", border=False):
         st.markdown("### 3. Confirme seus Dados")
         c_nome, c_zap = st.columns(2)
-        nome_cli = c_nome.text_input("Nome Completo")
-        zap_cli = c_zap.text_input("WhatsApp")
+        nome_cli = c_nome.text_input("Seu Nome")
+        zap_cli = c_zap.text_input("Seu WhatsApp (com DDD)")
         
-        st.divider()
         submit = st.form_submit_button("Confirmar Agendamento", type="primary", use_container_width=True)
 
         if submit:
             if not nome_cli or not zap_cli or not hora_final:
-                st.error("Por favor, preencha todos os campos antes de confirmar.")
+                st.error("Preencha seu nome, WhatsApp e selecione um horário.")
             else:
                 payload = {
                     "nome_cliente": nome_cli,
@@ -247,9 +266,106 @@ with tab_agendamento:
                 try:
                     supabase_portal.table("requisicoes_online").insert(payload).execute()
                     st.balloons()
-                    st.success("Tudo pronto! Entraremos em contato em breve.")
+                    st.success("✅ Solicitação enviada! Aguarde nosso contato para confirmação.")
                 except Exception as e:
-                    st.error(f"Erro ao salvar: {e}")
+                    st.error(f"Erro técnico ao salvar: {e}")
+# with tab_agendamento:
+#     st.write("## Agendamento de Especialistas")
+#     st.markdown("### 1. Local e Serviço")
+#     c1, c2, c3 = st.columns(3)
+
+#     # O Selectbox já vem pré-selecionado de acordo com a URL!
+#     index_padrao = list(LOJAS_DB.keys()).index(nome_loja_padrao)
+#     unidade_nome_selecionada = c1.selectbox("Escolha a Unidade", list(LOJAS_DB.keys()), index=index_padrao)
+    
+#     # Extrai a sigla da unidade selecionada no selectbox
+#     sigla_alvo = LOJAS_DB[unidade_nome_selecionada]["sigla"]
+
+#     servico_alvo = c2.selectbox("Serviço Desejado", ["Avaliação Física + Bioimpedância", "Nutricionista", "Consultoria Esportiva"])
+#     data_alvo = c3.date_input("Data da Visita", min_value=datetime.date.today())
+#     dia_semana_idx = data_alvo.weekday() + 1
+#     if dia_semana_idx == 7: dia_semana_idx = 0 
+
+#     todos_profs = buscar_profissionais_portal()
+#     profs_validos = []
+
+#     for p in todos_profs:
+#         profissoes = p.get('profissao', {})
+#         agenda = p.get('disponibilidade', {})
+        
+#         pode_atender = False
+#         if servico_alvo == "Avaliação Física + Bioimpedância": pode_atender = True
+#         elif servico_alvo == "Nutricionista" and profissoes.get("Nutricionista"): pode_atender = True
+#         elif servico_alvo == "Consultoria Esportiva" and profissoes.get("Personal Trainer"): pode_atender = True
+        
+#         if pode_atender:
+#             horarios_deste_prof = extrair_horarios_validos(agenda, dia_semana_idx, sigla_alvo)
+#             if horarios_deste_prof:
+#                 profs_validos.append({
+#                     "id": p['id'],
+#                     "nome": p['nome'],
+#                     "label": f"{p['nome']} ({', '.join([k for k, v in profissoes.items() if v])})",
+#                     "horarios": horarios_deste_prof
+#                 })
+
+#     st.divider()
+#     st.markdown("### 2. Especialista e Horário")
+
+#     if profs_validos:
+#         mapa_profs = {p['label']: p for p in profs_validos}
+#         col_p, col_h = st.columns(2)
+#         label_escolhido = col_p.selectbox("Selecione o Especialista", list(mapa_profs.keys()))
+#         prof_selecionado = mapa_profs[label_escolhido]
+#         horas_da_regra = prof_selecionado['horarios']
+        
+#         with st.spinner("Verificando agenda..."):
+#             horas_disponiveis = filtrar_horarios_ocupados(
+#                 horarios_livres=horas_da_regra,
+#                 data=data_alvo,
+#                 profissional=prof_selecionado['nome'],
+#                 unidade=sigla_alvo
+#             )
+        
+#         if horas_disponiveis:
+#             hora_final = col_h.selectbox("Horários Disponíveis", horas_disponiveis)
+#         else:
+#             st.error("⚠️ Este profissional já está com a agenda lotada para este dia.")
+#             hora_final = None
+#     else:
+#         st.error("Nenhum profissional disponível para os critérios selecionados.")
+#         label_escolhido = None
+#         hora_final = None
+
+#     st.divider()
+#     with st.form("form_final_contato", border=False):
+#         st.markdown("### 3. Confirme seus Dados")
+#         c_nome, c_zap = st.columns(2)
+#         nome_cli = c_nome.text_input("Nome Completo")
+#         zap_cli = c_zap.text_input("WhatsApp")
+        
+#         st.divider()
+#         submit = st.form_submit_button("Confirmar Agendamento", type="primary", use_container_width=True)
+
+#         if submit:
+#             if not nome_cli or not zap_cli or not hora_final:
+#                 st.error("Por favor, preencha todos os campos antes de confirmar.")
+#             else:
+#                 payload = {
+#                     "nome_cliente": nome_cli,
+#                     "whatsapp": zap_cli,
+#                     "unidade_pretendida": sigla_alvo,
+#                     "data_pretendida": str(data_alvo),
+#                     "hora_pretendida": hora_final,
+#                     "profissional_pretendido": prof_selecionado['nome'],
+#                     "servico": servico_alvo,
+#                     "status": "pendente"
+#                 }
+#                 try:
+#                     supabase_portal.table("requisicoes_online").insert(payload).execute()
+#                     st.balloons()
+#                     st.success("Tudo pronto! Entraremos em contato em breve.")
+#                 except Exception as e:
+#                     st.error(f"Erro ao salvar: {e}")
 
 # --- ABA 3: NOSSAS UNIDADES (Gerada automaticamente) ---
 with tab_unidades:
