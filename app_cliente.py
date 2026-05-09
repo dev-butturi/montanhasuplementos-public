@@ -47,7 +47,7 @@ LOJAS_DB = {
     }
 }
 
-# --- 3. CSS E COMPONENTES VISUAIS ---
+# --- 3. CSS E COMPONENTES VISUAIS ---a
 st.markdown(f"""
     <style>
     [data-testid="stAppViewContainer"] {{ background-color: #FFFFFF; color: #000000; }}
