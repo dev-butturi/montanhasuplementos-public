@@ -2,26 +2,12 @@ import streamlit as st
 from supabase import create_client
 import datetime
 
-st.markdown("""
-    <style>
-    /* Estilizando os botões primários para a cor da marca (ex: Laranja) */
-    .stButton>button {
-        border-radius: 20px;
-    }
-    .st-at { /* Cor de destaque */
-        background-color: #FF4B4B;
-    }
-    /* Estilizando o container do Card */
-    [data-testid="stMetricContainer"] {
-        background-color: #f0f2f6;
-        padding: 15px;
-        border-radius: 10px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-# --- 1. CONFIGURAÇÃO DA PÁGINA E CONEXÃO ---
-st.set_page_config(page_title="Agendamento | Montanha Suplementos", page_icon="📅")
+# --- 1. CONFIGURAÇÃO DA PÁGINA, CONEXÃO E ESTILOS ---
+st.set_page_config(
+    page_title="Pré-Agendamento | Montanha Suplementos", 
+    page_icon="📅",
+    layout="centered" # ou "wide" se preferir
+)
 
 # Conexão com o Supabase Portal (Secrets)
 URL_PORTAL = st.secrets["supabase_portal"]["url"]
@@ -35,6 +21,49 @@ lojas_map = {
     "BH - Cidade Nova": "CENTRO",
     "Contagem": "CONTAGEM"
 }
+
+# --- ESTILIZAÇÃO CUSTOMIZADA (CSS) ---
+st.markdown(f"""
+    <style>
+    /* 1. Forçar fundo branco e esconder o menu de troca de tema */
+    [data-testid="stAppViewContainer"] {{
+        background-color: #FFFFFF;
+        color: #000000;
+    }}
+    
+    /* 2. Estilizar os botões primários (Vermelho Montanha) */
+    div.stButton > button:first-child {{
+        background-color: #E31F20;
+        color: white;
+        border-radius: 8px;
+        border: none;
+        font-weight: bold;
+        transition: 0.3s;
+    }}
+    div.stButton > button:first-child:hover {{
+        background-color: #b3191a;
+        color: white;
+    }}
+
+    /* 3. Estilizar campos de seleção e input (Cinza Suave) */
+    .stSelectbox, .stDateInput, .stTextInput {{
+        background-color: #e7e6e7;
+        border-radius: 5px;
+    }}
+
+    /* 4. Estilizar os Cards de Unidades e Containers */
+    [data-testid="stExpander"], .st-emotion-cache-12w0qpk {{
+        background-color: #e7e6e7 !important;
+        border: 1px solid #d1d1d1;
+    }}
+
+    /* 5. Ajustar títulos para Preto */
+    h1, h2, h3 {{
+        color: #000000 !important;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+
 
 # --- 2. FUNÇÕES AUXILIARES ---
 @st.cache_data(ttl=600) # Cache de 10 minutos
@@ -85,31 +114,64 @@ def filtrar_horarios_ocupados(horarios_livres, data, profissional, unidade):
         
     return horarios_livres
 
+st.markdown('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">', unsafe_allow_html=True)
+
+def botao_social(rede, link, texto):
+    cor = "#833AB4" if rede == "instagram" else "#25D366"
+    icone = "fa-brands fa-instagram" if rede == "instagram" else "fa-brands fa-whatsapp"
+    
+    html = f"""
+    <a href="{link}" target="_blank" style="text-decoration: none;">
+        <div style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: {cor};
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin: 5px 0;
+            font-weight: bold;
+            font-family: sans-serif;
+        ">
+            <i class="{icone}" style="margin-right: 10px; font-size: 1.2rem;"></i>
+            {texto}
+        </div>
+    </a>
+    """
+    st.markdown(html, unsafe_allow_html=True)
+
 # --- 3. INTERFACE DO USUÁRIO ---
+LOGO_URL = "https://lpixouzhhkswoeqlniof.supabase.co/storage/v1/object/public/midia/Logo_Vertical_Web_white.png"
 
-# No topo do arquivo, após os imports
-st.set_page_config(
-    page_title="Agendamento | Montanha Suplementos", 
-    page_icon="📅",
-    layout="centered" # ou "wide" se preferir
-)
+st.columns(3)[1].image(LOGO_URL, width=200) # Centraliza usando colunas
+# vermelho E31F20
+# cinza e7e6e7
 
-# Inserindo a Logo
-# Você pode usar um link direto da imagem ou um arquivo local
-#st.image("https://seu-link-da-logo.com/logo.png", width=200) 
+tab_inicio, tab_agendamento, tab_unidades = st.tabs(["Bem-Vindo", ":material/calendar_check: Agendamento", ":material/pin_drop: Nossas Unidades"])
 
-# No topo do arquivo
-LOGO_URL = "SUA_URL_PUBLICA_DO_SUPABASE_AQUI"
+unidade_nome = 'SJDR'
+loja_endereco = 'Av. Leite de Castro, 1228 - Fábricas - São João del-Rei - MG'
+with tab_inicio:
+    # 1. Foto da Fachada ou Logo da Unidade
+    st.title(f"Bem-vindo à Montanha {unidade_nome}")
+    st.caption(f"📍 {loja_endereco}")
 
-st.columns(3)[1].imasge(LOGO_URL, width=200) # Centraliza usando colunas
-
-st.title("📅 Reserva de Avaliação Esportiva")
-
-
-tab_agendamento, tab_unidades = st.tabs(["🎯 Agendamento", "📍 Nossas Unidades"])
-
+    if st.button("🎯 Agendar Avaliação Agora", use_container_width=True, type="primary"):
+        # Lógica para mudar para a aba de agendamento (ou apenas rolar a página)
+        pass
+        
+    botao_social("whatsapp", "https://wa.me/...", "Falar com Consultor")
+    
+    botao_social("instagram", "https://insta...", "Acompanhar Novidades")
+    
+    st.link_button("Compre On-Line", "https://...", use_container_width=True)
+    
+    st.markdown("---")
+  
 
 with tab_agendamento:
+    st.write("## Agendamento de Especialistas ")
     # PASSO 1: FILTROS (REATIVOS)
     st.markdown("### 1. Local e Serviço")
     c1, c2, c3 = st.columns(3)
@@ -225,23 +287,15 @@ with tab_agendamento:
                     st.error(f"Erro ao salvar: {e}")
 
 with tab_unidades:
-    st.subheader("Conheça nossas lojas e acompanhe no Instagram")
-    
-    # Dados das unidades (pode vir de um dict ou do banco)
-    unidades = [
-        {"nome": "São João del-Rei", "ig": "@montanha_sjdr", "link_ig": "https://instagram.com/montanha_sjdr", "wa": "5532999999999"},
-        {"nome": "BH - Jaraguá", "ig": "@montanha_jaragua", "link_ig": "https://instagram.com/montanha_jaragua", "wa": "5531999999999"},
-        {"nome": "BH - Cidade Nova", "ig": "@montanha_cidadenova", "link_ig": "https://instagram.com/montanha_cidadenova", "wa": "5531888888888"},
-    ]
-
-    # Criando os "Cards" em colunas
-    cols = st.columns(2) # 2 cards por linha
-    for i, uni in enumerate(unidades):
-        with cols[i % 2]:
-            with st.container(border=True): # Cria a borda do card
-                st.markdown(f"### {uni['nome']}")
-                st.write(f"📸 **Instagram:** {uni['ig']}")
-                
-                c_ig, c_wa = st.columns(2)
-                c_ig.link_button("Ver Instagram", uni['link_ig'], use_container_width=True)
-                c_wa.link_button("WhatsApp", f"https://wa.me/{uni['wa']}", use_container_width=True)
+    with st.container():
+        st.markdown(f"""
+            <div style="background-color: #e7e6e7; padding: 20px; border-radius: 10px; border-left: 5px solid #E31F20;">
+                <h5 style="margin:-5px;">São João del-Rei</h4>
+                <p style="color: #666; margin: 5px 0;">Av. Leite de Castro 1228, Fábricas</p>
+            </div>
+        """, unsafe_allow_html=True)
+        c12, c1, c2, c22 = st.columns(4)
+        with c1:
+            botao_social("instagram", "https://instagram.com/perfil", "Siga")
+        with c2:
+            botao_social("whatsapp", "https://wa.me/5532...", "Chame")

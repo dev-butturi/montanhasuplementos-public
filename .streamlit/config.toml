@@ -1,0 +1,6 @@
+[theme]
+primaryColor = "#E31F20"      # Cor principal da sua marca (ex: Vermelho Montanha)
+backgroundColor = "#FFFFFF"   # Fundo claro
+secondaryBackgroundColor = "#e7e6e7" # Cor dos widgets
+textColor = "#262730"         # Cor do texto
+font = "sans serif"
