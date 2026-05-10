@@ -21,14 +21,14 @@ LOJAS_DB = {
     "São João del-Rei": {
         "sigla": "SJDR",
         "endereco": "Av. Leite de Castro, 1228 - Fábricas",
-        "ig_link": "https://instagram.com/montanha_sjdr",
+        "ig_link": "https://instagram.com/montanhasuplementos_sjdr",
         "wa_link": "https://wa.me/5532984658118",
         "site_link": "https://www.montanhasuplementos.com.br"
     },
     "BH - Cidade Nova": {
         "sigla": "CIDADENOVA",
         "endereco": "Rua Júlio Pereira da Silva, 10, Loja 1 - Cidade Nova",
-        "ig_link": "https://instagram.com/montanha_jaragua",
+        "ig_link": "https://instagram.com/montanhasuplementos.jaragua",
         "wa_link": "https://wa.me/5531973658122",
         "site_link": "https://www.montanhasuplementos.com.br"
     },
