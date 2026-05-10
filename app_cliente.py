@@ -26,7 +26,7 @@ LOJAS_DB = {
         "site_link": "https://www.montanhasuplementos.com.br"
     },
     "BH - Cidade Nova": {
-        "sigla": "CENTRO",
+        "sigla": "CIDADENOVA",
         "endereco": "Rua Júlio Pereira da Silva, 10, Loja 1 - Cidade Nova",
         "ig_link": "https://instagram.com/montanha_jaragua",
         "wa_link": "https://wa.me/5531973658122",
